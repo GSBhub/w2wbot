@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-from requests_html import HTMLSession
 import json
 import urllib
 from bs4 import BeautifulSoup
