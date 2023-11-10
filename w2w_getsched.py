@@ -8,7 +8,6 @@ import argparse
 def getTeamId(teamName, location):
     teamId = None
     teamUri = teamName.replace(" ", "%20")
-    # facility id=20 is Mason
     w2w_apiserv = f"https://lps-api-prod.lps-test.com/teams/search_teams?name={teamUri}&facility_id={location}"
     req = urllib.request.urlopen(w2w_apiserv)
     if (req.getcode() == 200):
@@ -17,7 +16,7 @@ def getTeamId(teamName, location):
     return teamId
         
 
-def getTeamData(teamName, location=20):
+def getTeamData(teamName, location):
     teamData = None
     teamId = getTeamId(teamName, location)
     if teamId:
@@ -47,7 +46,7 @@ def getTeamData(teamName, location=20):
     return teamData
 
 
-def getSchedule(teamName, location=20):
+def getSchedule(teamName, location):
     
     teamData = getTeamData(teamName, location)
     soup = BeautifulSoup(teamData, "html.parser")
