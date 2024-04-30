@@ -11,6 +11,7 @@ client = discord.Client(intents=intents)
 channel = 0
 team_name = ""
 location = 0
+game_day = 0
 
 def schedule_message(teamName, location, force_message=False):
     teamSchedule = getSchedule(teamName, location)
@@ -32,7 +33,7 @@ def schedule_message(teamName, location, force_message=False):
             msg += f"\n{teamName.upper()} is the home team." if isHome else f"\n{teamName.upper()} is the away team."
     
     if msg == "" and force_message:
-        msg = "Wall to Wall hasn't posted a schedule yet!"
+        msg = "Wall2Wall hasn't posted the next game yet!"
 
     return msg
 
@@ -52,7 +53,14 @@ async def cronMsg():
     message_channel = client.get_channel(channel)
     msg = schedule_message(team_name, location)
     if msg != "":
-        if last_posted_message_time == None or datetime.now() < (last_posted_message_time - timedelta(days=7)):
+        # determine if we should post
+        # criteria: DOW you care about (ex 7, for sunday)
+        # and last message time 
+        # last message time .weekday() - weekday_of_game < 0?
+        # alternatively, post a message if it's been about a week since we last posted
+
+        if last_posted_message_time == None or ((datetime.now().weekday() - last_posted_message_time.weekday()) < 0) or ((datetime.now().weekday() - game_day) < 0):
+            
             await message_channel.send(msg)
             last_posted_message_time = datetime.now()
 
@@ -63,7 +71,7 @@ async def on_message(message):
     if message.author == client.user:
         return
 
-    if "play" in message.content.lower() and "?" in message.content and ("sunday" in message.content.lower() or "tomorrow" in message.content.lower()):
+    if "play" in message.content.lower() and "?" in message.content and ("when" in message.content.lower() or "tomorrow" in message.content.lower()):
         await message.channel.send(schedule_message(team_name, location, True))
 
 if __name__ == "__main__":
@@ -72,7 +80,8 @@ if __name__ == "__main__":
     parser.add_argument("team_name", help="Team Name")
     parser.add_argument("token", help="Discord API Token")
     parser.add_argument("channel", type=int, help="Channel to talk in")
-    parser.add_argument("--location", type=int, default=20, help="Team location value (check website, it's the number)")
+    parser.add_argument("game_day", type=int, help="Day of week, from 1 (Monday) to 7 (Sunday) the game you care about is on.")
+    parser.add_argument("location", type=int, help="Team location value (check website, it's the number)")
     parser.add_argument("--skip_first_week", default=False, action="store_true", help="Don't send the message during the first week this bot is on.")
 
     args = parser.parse_args()
@@ -81,6 +90,7 @@ if __name__ == "__main__":
     token = args.token 
     location = args.location
     channel = args.channel
+    game_day = args.game_day
     if args.skip_first_week:
         last_posted_message_time = datetime.now()
     else:

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import json
-import urllib
+import urllib.request
 from bs4 import BeautifulSoup
 import argparse
 
@@ -18,23 +18,29 @@ def getTeamId(teamName, location):
 def getTeamData(teamName, location):
     teamData = None
     teamId = getTeamId(teamName, location)
+
     if teamId:
         w2wSchedUrl = f"https://www.letsplaysoccer.com/{location}/teamSchedule/{teamId}?lang=en"
+
+    # formerly had:        "sec-ch-ua": "\"Chromium\";v=\"119\", \"Not?A_Brand\";v=\"24\"",
+    #        "sec-ch-ua-platform": "Linux",
+    #         "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
 
     # this is painful but the website gives me a 500 error if I don't have it
     headers = {"host": "www.letsplaysoccer.com",
         "Connection": "keep-alive",
-        "sec-ch-ua": "\"Chromium\";v=\"119\", \"Not?A_Brand\";v=\"24\"",
         "sec-ch-ua-mobile": "?0",
-        "sec-ch-ua-platform": "Linux",
         "Upgrade-Insecure-Requests": "1",
-        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.8",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Cookie": "lang=en",
+        "DNT" : "1",
         "Sec-Fetch-Site": "none",
         "Sec-Fetch-Mode": "navigate",
         "Sec-Fetch-User": "?1",
         "Sec-Fetch-Dest": "document",
-        "Accept-Language": "en-US,en;q=0.9"
+        "Accept-Language": "en-US,en;q=0.5",
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/115.0"
     }
 
     req = urllib.request.Request(w2wSchedUrl, headers=headers)
@@ -56,5 +62,6 @@ def getSchedule(teamName, location):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("team_name", help="Team name to query.")
+    parser.add_argument("location", type=int, help="Team int to query. To find, query the w2w api.")
     args = parser.parse_args()
-    print(getSchedule(args.team_name))
+    print(getSchedule(args.team_name, args.location))
