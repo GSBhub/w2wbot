@@ -55,6 +55,8 @@ def getSchedule(teamName, location):
     
     teamData = getTeamData(teamName, location)
     soup = BeautifulSoup(teamData, "html.parser")
+    # ftodo: return all the rows and parse for the next logical gametime
+    # for the locations that actually post games more than a week in advance
     last_row = soup.find_all("tr")[-1] # this works fine
     row_contents = [element.text for element in last_row]
     return row_contents
