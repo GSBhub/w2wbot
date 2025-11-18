@@ -3,6 +3,7 @@ import json
 import urllib.request
 from bs4 import BeautifulSoup
 import argparse
+from datetime import datetime
 
 def getTeamId(teamName, location):
     teamId = None
@@ -55,15 +56,65 @@ def getSchedule(teamName, location):
     
     teamData = getTeamData(teamName, location)
     soup = BeautifulSoup(teamData, "html.parser")
-    # ftodo: return all the rows and parse for the next logical gametime
-    # for the locations that actually post games more than a week in advance
-    last_row = soup.find_all("tr")[-1] # this works fine
-    row_contents = [element.text for element in last_row]
-    return row_contents
+    # return all the rows/schedules
+    for row in soup.find_all("tr")[1:]: # ignore the table header
+        row_contents = [element.text for element in row]
+        yield row_contents
+
+
+# converts ate from the format string "%m/%d %H %M %p"
+# to use with the w2w strings, just carve off the first 4 chars (Day + " ")
+def dtoConv(conv_date):
+    now = datetime.now()
+
+    dto = datetime.strptime(conv_date, "%m/%d %H:%M %p")
+    
+    # push the year forward 1 for schedules that run between EOY and BOY
+    dto = dto.replace(year=now.year if dto.month >= now.month else now.year+1)
+    
+    return dto
+
+
+# Get the previous game time played by this team at the given location
+# starting from the date provided
+# if no games exist before that time, None is returned.
+def getPreviousGame(teamName, location, ftime=None):
+    if ftime is None:
+        ftime = datetime.now()
+
+    # grab list to reverse 
+    schedule = [_ for _ in getSchedule(teamName, location)]
+
+    for row in reversed(schedule):
+        # first 4 chars are DAY and space
+        dto = dtoConv(row[0][4:])
+        if dto.date() < ftime.date(): # game is before "from"
+            return row
+    return None
+
+
+# Get the next game time played by this team at the given location
+# starting from the date provided
+def getNextGame(teamName, location, ftime=None):
+    if ftime is None:
+        ftime = datetime.now()
+
+    for row in getSchedule(teamName, location):
+        dto = dtoConv(row[0][4:])
+        if dto.date() > ftime.date(): # game is after "from"
+            return row
+    return None
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser("Return the next available game from the provided team.")
     parser.add_argument("team_name", help="Team name to query.")
     parser.add_argument("location", type=int, help="Team int to query. To find, query the w2w api.")
+    parser.add_argument("-d", "--date", type=lambda s: dtoConv(s), help="From date, in the form \"MM/DD HH:MM (am/pm)\"")
+    parser.add_argument("-p", "--prev", action="store_true", help="Get previous game instead of next game")
+
     args = parser.parse_args()
-    print(getSchedule(args.team_name, args.location))
+    func = getNextGame
+    if args.prev:
+        func = getPreviousGame
+
+    print(func(args.team_name, args.location, ftime=args.date))
