@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from w2w_getsched import getSchedule, getNextGame, getPreviousGame, dtoConv
 from datetime import datetime, timedelta
 import discord
@@ -179,6 +180,25 @@ if __name__ == "__main__":
         print(schedule_message(team_name, location))
         print(prev_game_message(team_name, location))
         print(next_game_message(team_name, location))
+
+        # query server + display channels too
         
+        bot = discord.Client(intents=discord.Intents.default())
+
+        @bot.event
+        async def on_ready():
+            text_channel_list = []
+            for guild in bot.guilds:
+                for channel in guild.text_channels:
+                    text_channel_list.append(channel)
+                    print(channel, guild.name)
+
+        print("Attempting to query channel names/IDs using token/channel")
+        try:
+            bot.run("TOKEN")
+        except:
+            print("Query failed.")
+
+
     else:
         client.run(token)
