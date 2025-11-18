@@ -10,4 +10,5 @@ RUN pip3 install --no-cache -r /w2wbot/requirements.txt
 
 COPY *.py /w2wbot/ 
 
-ENTRYPOINT python3 /w2wbot/w2wbot.py "$TEAM_NAME" $TOKEN $CHANNEL $DAY $LOCATION
+ENTRYPOINT ["python3", "/w2wbot/w2wbot.py"]
+CMD [""]

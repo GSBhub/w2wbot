@@ -6,6 +6,8 @@ from discord.ext import tasks
 import asyncio
 # nice ascii-based table
 from table2ascii import table2ascii as t2a, PresetStyle
+import os
+from dotenv import load_dotenv
 
 last_posted_message_time = None
 intents = discord.Intents.default()
@@ -143,22 +145,54 @@ days_of_week = ["Monday", "Tuesday", "Wedneday", "Thursday", "Friday", "Saturday
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument("team_name", help="Team Name")
-    parser.add_argument("token", help="Discord API Token")
-    parser.add_argument("channel", type=int, help="Channel to send game reminders to")
+    
+    # 
+    parser.add_argument("-n", "--team_name", help="Team Name")
+    parser.add_argument("-o", "--token", help="Discord API Token")
+    parser.add_argument("-c", "--channel", type=int, help="Channel to send game reminders to")
+    parser.add_argument("-l", "--location", type=int, help="Team location value (check team schedule website, it's the number in the URL)")
+
     parser.add_argument("--schedule_channel", type=int, help="Channel to send the full schedule to, if different than channel")
     parser.add_argument("-d", "--day", default="Thursday", type=lambda s : s[0].upper() + s[1:].lower(), choices=days_of_week, help="Day of the week to post game times on, if available. Will delay until later if the game time hasn't been posted yet.")
-    parser.add_argument("location", type=int, help="Team location value (check website, it's the number)")
     parser.add_argument("-s", "--skip_first_week", default=False, action="store_true", help="Don't send the message during the first week this bot is on.")
     parser.add_argument("-t", "--test", action="store_true", help="Print messages and exit without connecting to Discord.")
-    parser.add_argument("-n", "--session_start", type=lambda s: dtoConv(s), help="Sessionstart date (avoids sending the schedule if set). Format is \"MM/DD HH:MM (am/pm)\"")
+    parser.add_argument("-a", "--session_start", type=lambda s: dtoConv(s), help="Sessionstart date (avoids sending the schedule if set). Format is \"MM/DD HH:MM (am/pm)\"")
 
     args = parser.parse_args()
+
+    load_dotenv()
+
+    team_name = args.team_name if args.team_name else os.getenv('TEAM_NAME')
+    token = args.token if args.token else os.getenv('TOKEN')
+    location = args.location if args.location else os.getenv('LOCATION')
+    channel = args.channel if args.channel else os.getenv('CHANNEL')
     
-    team_name = args.team_name
-    token = args.token 
-    location = args.location
-    channel = args.channel
+    err = False
+
+    if team_name is None:
+        print("Set the \"TEAM_NAME\" environment variable or provide a team name with --team_name")
+        err = True
+
+    if token is None:
+        print("Set the \"TOKEN\" environment variable or provide a team name with --token")
+        err = True 
+
+    if location is None:
+        print("Set the \"LOCATION\" environment variable (integer) or provide a location with --location")
+        err = True
+    else:
+        location = int(location)
+
+    if channel is None:
+        print("Set the \"CHANNEL\" environment variable (integer) or provide a location with --channel")
+        err = True
+    else:
+        channel = int(channel)
+        
+    if err:
+        parser.print_usage()
+        parser.exit()
+
     if args.schedule_channel:
         schedule_channel = args.schedule_channel
     else:
