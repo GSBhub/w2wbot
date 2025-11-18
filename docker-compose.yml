@@ -1,0 +1,6 @@
+services:
+
+  w2wbot:
+    image: w2wbot
+    env_file:
+      - .env
