@@ -2,6 +2,7 @@
 from w2w_getsched import getSchedule, getNextGame, getPreviousGame, dtoConv
 from datetime import datetime, timedelta
 import discord
+from discord import app_commands
 from discord.ext import tasks
 import asyncio
 # nice ascii-based table
@@ -13,6 +14,7 @@ last_posted_message_time = None
 intents = discord.Intents.default()
 intents.message_content = True
 client = discord.Client(intents=intents)
+tree = app_commands.CommandTree(client)
 channel = 0
 schedule_channel = 0
 schedule_message = None
@@ -125,20 +127,37 @@ async def getSchedMsg():
 
     if msg != "":
         if new_session:
-            schedule_message = await ctx.send(msg) 
+            schedule_message = await message_channel.send(msg) 
         else: # edit the previous message instead of just sending the same schedule
             schedule_message = await schedule_mesage.edit(content=msg)
 
 
-@client.event
-async def on_message(message):
+@tree.command(
+    name="last",
+    description="Ask W2Wbot for the previous game stats",
+)
+async def on_message(interaction):
     global team_name
     global location
-    if message.author == client.user:
-        return
+    await interaction.response.send_message(prev_game_message(team_name, location, True))
 
-    if "play" in message.content.lower() and "?" in message.content and ("when" in message.content.lower() or "tomorrow" in message.content.lower()):
-        await message.channel.send(schedule_message(team_name, location, True))
+@tree.command(
+    name="next",
+    description="Ask W2Wbot for the next game time",
+)
+async def on_message(interaction):
+    global team_name
+    global location
+    await interaction.response.send_message(next_game_message(team_name, location, True))
+
+@tree.command(
+    name="schedule",
+    description="Ask W2Wbot for the current schedule",
+)
+async def on_message(interaction):
+    global team_name
+    global location
+    await interaction.response.send_message(schedule_message(team_name, location, True))
 
 days_of_week = ["Monday", "Tuesday", "Wedneday", "Thursday", "Friday", "Saturday", "Sunday"]
 
@@ -194,7 +213,9 @@ if __name__ == "__main__":
         parser.exit()
 
     if args.schedule_channel:
-        schedule_channel = args.schedule_channel
+        schedule_channel = int(args.schedule_channel)
+    elif os.getenv('SCHEDULE_CHANNEL'):
+        schedule_channel = int(os.getenv('SCHEDULE_CHANNEL'))
     else:
         schedule_channel = channel
 
@@ -232,7 +253,6 @@ if __name__ == "__main__":
             bot.run("TOKEN")
         except:
             print("Query failed.")
-
 
     else:
         client.run(token)
