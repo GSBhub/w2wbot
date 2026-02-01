@@ -48,7 +48,7 @@ def build_schedule_message(teamName, location, force_message=False) -> tuple[dis
 
         # discord embed
         for time in schedules:
-            item = f"Field: {vals["Field"][i]}\nHome: {vals["Home"][i]} vs Visitor: {vals["Visitor"][i]}\nResult: {vals["Result"][i]}"
+            item = f"Field: {vals["Field"][i]}\nHome: {vals["Home"][i]}\nVisitor: {vals["Visitor"][i]}\nResult: {vals["Result"][i]}"
             msg.add_field(name=time, value=item, inline=True)
             # lazy, but these should be associative so it's fine
             i += 1
