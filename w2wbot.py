@@ -178,7 +178,7 @@ async def on_message(interaction):
     sched_msg, _ = build_schedule_message(team_name, location, True)
     await interaction.response.send_message(embed=sched_msg)
 
-days_of_week = ["Monday", "Tuesday", "Wedneday", "Thursday", "Friday", "Saturday", "Sunday"]
+days_of_week = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
 if __name__ == "__main__":
     import argparse
