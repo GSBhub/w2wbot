@@ -70,7 +70,7 @@ def dtoConv(conv_date):
     dto = datetime.strptime(conv_date, "%m/%d %H:%M %p")
     
     # push the year forward 1 for schedules that run between EOY and BOY
-    dto = dto.replace(year=now.year if dto.month >= now.month else now.year+1)
+    dto = dto.replace(year=now.year + 1 if (dto.month == 1 and now.month == 12) else now.year)
     
     return dto
 
@@ -101,6 +101,8 @@ def getNextGame(teamName, location, ftime=None):
 
     for row in getSchedule(teamName, location):
         dto = dtoConv(row[0][4:])
+        print(f"dto date {dto.date()} vs ftime date: {ftime.date()}")
+
         if dto.date() > ftime.date(): # game is after "from"
             return row
     return None

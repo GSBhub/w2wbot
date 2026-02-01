@@ -26,24 +26,31 @@ session_start = None
 
 header=["Schedule", "Field", "Home", "Visitor", "Result"]
 
-def schedule_message(teamName, location, force_message=False):
-    global session_start
+def build_schedule_message(teamName, location, force_message=False) -> tuple[discord.Embed | None, bool]:
+    global session_start, header
 
-    msg = ""
+    msg = None 
     new_session = False
     sched = [_ for _ in getSchedule(teamName, location)]
 
     if len(sched) > 0:
-        msg = t2a(
-            header=header,
-            body=sched,
-            style=PresetStyle.thin_compact
-            )
+        msg = discord.Embed(
+            title=f"{teamName.upper()}'s Schedule",
+            description="Here is the current schedule for the team:",
+            color=discord.Color.blue()
+        )
+        # transpose list to format matching headers
+        vals = dict(zip(header, list(zip(*sched))))
+
+        # discord embed
+        for header, value in vals.items():
+            msg.add_field(name=header, value="\n".join(value), inline=True)
 
         sched_start = dtoConv(sched[0][0][4:])
         if sched_start.date() != session_start.date():
             new_session = True
             session_start = sched_start
+
     return msg, new_session
     
 
@@ -56,10 +63,10 @@ def next_game_message(teamName, location, force_message=False):
         gameTime = nextGame[0]
         dto = dtoConv(gameTime[4:])
         field = nextGame[1]
-        isHome = (nextGame[2] == teamName.upper())
+        isHome = (nextGame[2].upper() == teamName.upper())
         opponent = nextGame[3] if isHome else nextGame[2]
-        msg = f"{teamName.upper()}'s next game is {gameTime} {dto.year} against {opponent} on {field}."
-        msg += f"\n{teamName.upper()} is the home team." if isHome else f"\n{teamName.upper()} is the away team."
+        msg = f"{teamName}'s next game is {gameTime} {dto.year} against {opponent} on {field}."
+        msg += f"\n{teamName} is the home team." if isHome else f"\n{teamName} is the away team."
     
     if msg == "" and force_message:
         msg = "Wall2Wall hasn't posted the next game yet!"
@@ -75,10 +82,10 @@ def prev_game_message(teamName, location, force_message=False):
         gameTime = prevGame[0]
         dto = dtoConv(gameTime[4:])
         field = prevGame[1]
-        isHome = (prevGame[2] == teamName.upper())
+        isHome = (prevGame[2].upper() == teamName.upper())
         opponent = prevGame[3] if isHome else prevGame[2]
-        msg = f"{teamName.upper()}'s previous game was {gameTime} {dto.year} against {opponent} on {field}."
-        msg += f"\n{teamName.upper()} was the home team." if isHome else f"\n{teamName.upper()} was the away team."
+        msg = f"{teamName}'s previous game was {gameTime} {dto.year} against {opponent} on {field}."
+        msg += f"\n{teamName} was the home team." if isHome else f"\n{teamName} was the away team."
         msg += f"\nThe score of that game was (Home - Away): {prevGame[4]}"
 
     if msg == "" and force_message:
@@ -113,6 +120,12 @@ async def nextGameMsg():
             await message_channel.send(msg)
             last_posted_message_time = datetime.now()
 
+async def get_last_bot_message(message_channel):
+    async for message in message_channel.history(limit=100):
+        if message.author == client.user:
+            return message
+    return None
+
 
 # check daily to see if the scores have updated, or if a new schedule is posted
 @tasks.loop(hours=24)
@@ -123,13 +136,18 @@ async def getSchedMsg():
     global schedule_message
     print(f"Retrieving channel {channel}...")
     message_channel = client.get_channel(schedule_channel)
-    msg, new_session = schedule_message(team_name, location)
 
-    if msg != "":
+    if schedule_message is None:
+        schedule_message = await get_last_bot_message(message_channel)
+        print("Retrieved previous schedule message:", schedule_message)
+
+    msg, new_session = build_schedule_message(team_name, location)
+
+    if msg != None:
         if new_session:
-            schedule_message = await message_channel.send(msg) 
+            schedule_message = await message_channel.send(embed=msg) 
         else: # edit the previous message instead of just sending the same schedule
-            schedule_message = await schedule_mesage.edit(content=msg)
+            schedule_message = await schedule_message.edit(embed=msg)
 
 
 @tree.command(
@@ -157,7 +175,8 @@ async def on_message(interaction):
 async def on_message(interaction):
     global team_name
     global location
-    await interaction.response.send_message(schedule_message(team_name, location, True))
+    sched_msg, _ = build_schedule_message(team_name, location, True)
+    await interaction.response.send_message(embed=sched_msg)
 
 days_of_week = ["Monday", "Tuesday", "Wedneday", "Thursday", "Friday", "Saturday", "Sunday"]
 
@@ -231,8 +250,10 @@ if __name__ == "__main__":
     else:
         session_start = datetime.now()
 
-    if args.test:
-        print(schedule_message(team_name, location))
+    if args.test:     
+        msg_embed, new_session = build_schedule_message(team_name, location)
+        print(msg_embed.title + msg_embed.description + str(msg_embed.fields) if msg_embed else "No schedule message generated.")
+        print("Should send message:", new_session)
         print(prev_game_message(team_name, location))
         print(next_game_message(team_name, location))
 
@@ -247,6 +268,9 @@ if __name__ == "__main__":
                 for channel in guild.text_channels:
                     text_channel_list.append(channel)
                     print(channel, guild.name)
+
+                    prev_msg = await get_last_bot_message(channel)
+                    print("Previous schedule message:", prev_msg)
 
         print("Attempting to query channel names/IDs using token/channel")
         try:
