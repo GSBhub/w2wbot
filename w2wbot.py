@@ -42,9 +42,16 @@ def build_schedule_message(teamName, location, force_message=False) -> tuple[dis
         # transpose list to format matching headers
         vals = dict(zip(header, list(zip(*sched))))
 
+        schedules = vals["Schedule"]
+
+        i = 0
+
         # discord embed
-        for header, value in vals.items():
-            msg.add_field(name=header, value="\n".join(value), inline=True)
+        for time in schedules:
+            item = f"Field: {vals["Field"][i]}\nHome: {vals["Home"][i]} vs Visitor: {vals["Visitor"][i]}\nResult: {vals["Result"][i]}"
+            msg.add_field(name=time, value=item, inline=True)
+            # lazy, but these should be associative so it's fine
+            i += 1
 
         sched_start = dtoConv(sched[0][0][4:])
         if sched_start.date() != session_start.date():
