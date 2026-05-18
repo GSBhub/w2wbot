@@ -1,4 +1,0 @@
-BeautifulSoup4
-discord
-table2ascii
-dotenv

@@ -1,15 +1,12 @@
-FROM python:3-alpine
+FROM ghcr.io/astral-sh/uv:python3.11-alpine
 
-RUN apk update && apk add python3-dev gcc libc-dev
+RUN apk add --no-cache gcc musl-dev
 
-RUN pip3 install --no-cache --upgrade pip
+WORKDIR /w2wbot
 
-RUN mkdir /w2wbot
+COPY pyproject.toml .
+RUN uv sync --no-dev --no-cache
 
-COPY requirements.txt /w2wbot/
+COPY *.py .
 
-RUN pip3 install --no-cache -r /w2wbot/requirements.txt
-
-COPY *.py /w2wbot/ 
-
-ENTRYPOINT ["python3", "/w2wbot/w2wbot.py"]
+ENTRYPOINT ["uv", "run", "python", "w2wbot.py"]

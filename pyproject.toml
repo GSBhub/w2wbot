@@ -1,0 +1,25 @@
+[project]
+name = "w2wbot"
+version = "0.1.0"
+description = "Discord bot for Wall2Wall/LetsPlaySoccer game schedule notifications"
+requires-python = ">=3.11"
+dependencies = [
+    "beautifulsoup4",
+    "discord.py",
+    "table2ascii",
+    "python-dotenv",
+]
+
+[dependency-groups]
+dev = ["pytest>=7", "pytest-asyncio>=0.23"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = ["w2wbot", "w2w_getsched"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
