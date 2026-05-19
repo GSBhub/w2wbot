@@ -48,7 +48,7 @@ def build_schedule_message(teamName, location, force_message=False) -> tuple[dis
 
         # discord embed
         for time in schedules:
-            item = f"Field: {vals["Field"][i]}\nHome: {vals["Home"][i]}\nVisitor: {vals["Visitor"][i]}\nResult: {vals["Result"][i]}"
+            item = f"Field: {vals['Field'][i]}\nHome: {vals['Home'][i]}\nVisitor: {vals['Visitor'][i]}\nResult: {vals['Result'][i]}"
             msg.add_field(name=time, value=item, inline=True)
             # lazy, but these should be associative so it's fine
             i += 1
@@ -100,9 +100,17 @@ def prev_game_message(teamName, location, force_message=False):
 
     return msg
 
+def should_post(last_posted_time):
+    """Returns True if a game reminder should be posted (at most once per week)."""
+    if last_posted_time is None:
+        return True
+    return (datetime.now() - last_posted_time).days >= 7
+
+
 @client.event
 async def on_ready():
     print(f'Logged in as {client.user}')
+    await tree.sync()
     nextGameMsg.start()
     getSchedMsg.start()
 
@@ -116,20 +124,15 @@ async def nextGameMsg():
     print(f"Retrieving channel {channel}...")
     message_channel = client.get_channel(channel)
     msg = next_game_message(team_name, location)
-    if msg != "":
-        # determine if we should post
-        # criteria: DOW you care about (ex 7, for sunday)
-        # and last message time 
-        # last message time .weekday() - weekday_of_game < 0?
-        # alternatively, post a message if it's been about a week since we last posted
-        if last_posted_message_time == None or ((datetime.now().weekday() - last_posted_message_time.weekday()) < 0) or ((datetime.now().weekday() - game_day) < 0):
-            
-            await message_channel.send(msg)
-            last_posted_message_time = datetime.now()
+    if msg != "" and should_post(last_posted_message_time):
+        await message_channel.send(msg)
+        last_posted_message_time = datetime.now()
 
-async def get_last_bot_message(message_channel):
-    async for message in message_channel.history(limit=100):
-        if message.author == client.user:
+async def get_last_schedule_message(message_channel):
+    async for message in message_channel.history(limit=200):
+        if (message.author == client.user
+                and message.embeds
+                and message.embeds[0].title.endswith("'s Schedule")):
             return message
     return None
 
@@ -145,15 +148,15 @@ async def getSchedMsg():
     message_channel = client.get_channel(schedule_channel)
 
     if schedule_message is None:
-        schedule_message = await get_last_bot_message(message_channel)
+        schedule_message = await get_last_schedule_message(message_channel)
         print("Retrieved previous schedule message:", schedule_message)
 
     msg, new_session = build_schedule_message(team_name, location)
 
-    if msg != None:
-        if new_session:
-            schedule_message = await message_channel.send(embed=msg) 
-        else: # edit the previous message instead of just sending the same schedule
+    if msg is not None:
+        if new_session or schedule_message is None:
+            schedule_message = await message_channel.send(embed=msg)
+        else:
             schedule_message = await schedule_message.edit(embed=msg)
 
 
@@ -161,7 +164,7 @@ async def getSchedMsg():
     name="last",
     description="Ask W2Wbot for the previous game stats",
 )
-async def on_message(interaction):
+async def last_command(interaction):
     global team_name
     global location
     await interaction.response.send_message(prev_game_message(team_name, location, True))
@@ -170,7 +173,7 @@ async def on_message(interaction):
     name="next",
     description="Ask W2Wbot for the next game time",
 )
-async def on_message(interaction):
+async def next_command(interaction):
     global team_name
     global location
     await interaction.response.send_message(next_game_message(team_name, location, True))
@@ -179,7 +182,7 @@ async def on_message(interaction):
     name="schedule",
     description="Ask W2Wbot for the current schedule",
 )
-async def on_message(interaction):
+async def schedule_command(interaction):
     global team_name
     global location
     sched_msg, _ = build_schedule_message(team_name, location, True)

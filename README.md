@@ -4,9 +4,17 @@ Simple discord bot for saying when your teams' next game at Wall2Wall/LetsPlaySo
 
 ## Installation
 
-Recommended install is in a virtualenv (`python3 -m venv .venv && source .venv/bin/activate` or `mkvirtualenv w2wbot && workon w2wbot`)
+Requires Python 3.11+. Install with [uv](https://docs.astral.sh/uv/):
 
-`pip3 install -r requirements.txt`
+```
+uv sync
+```
+
+For development (includes pytest):
+
+```
+uv sync --group dev
+```
 
 
 ## Basic Usage
@@ -16,7 +24,13 @@ The bot is configured to immediately report your next team game, unless the curr
 
 The bot is also configured to report the full team schedule posted thus far as a table, which will also have the information for previous game times available.
 
-### WIP slash commands
+### Running tests
+
+```
+uv run pytest
+```
+
+### Slash commands
 `/next` -> posts next game time
 `/schedule` -> posts full schedule message
 `/prev` -> posts previous game/score
@@ -26,7 +40,7 @@ The bot is also configured to report the full team schedule posted thus far as a
 There are amd64 and arm images at hub.docker.com/repository/docker/kingkaffee/w2wbot/
 
 ## Dockerfile
-`source .env && docker build -t w2wbot . && docker run w2wbot`
+`docker build -t w2wbot . && docker run --env-file .env w2wbot`
 
 ## Docker-compose
 Create your `.env` and run `docker-compose up`.
